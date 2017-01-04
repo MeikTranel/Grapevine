@@ -13,7 +13,7 @@ namespace Grapevine.Server
         /// <summary>
         /// Gets or sets the default file to return when a directory is requested
         /// </summary>
-        string DefaultFileName { get; set; }
+        string IndexFileName { get; set; }
 
         /// <summary>
         /// Gets or sets the optional prefix for specifying when static content should be returned
@@ -43,13 +43,16 @@ namespace Grapevine.Server
     public class PublicFolder : IPublicFolder
     {
         protected ConcurrentDictionary<string, string> DirectoryList { get; set; }
-        protected const string DefaultFolderName = "public";
+
+        public static string DefaultFolderName { get; } = "public";
+        public static string DefaultIndexFileName { get; } = "index.html";
 
         private FileSystemWatcher _watcher;
+        private string _indexFileName = "index.html";
         private string _prefix;
         private string _path;
 
-        public PublicFolder() : this(Path.Combine(Directory.GetCurrentDirectory(), DefaultFolderName)) { }
+        public PublicFolder() : this(Path.Combine(Directory.GetCurrentDirectory(), DefaultFolderName), string.Empty) { }
 
         public PublicFolder(string path) : this(path, string.Empty) { }
 
@@ -68,14 +71,23 @@ namespace Grapevine.Server
                 NotifyFilter = NotifyFilters.FileName
             };
 
-            Watcher.Created += UpdateDirectoryList;
-            Watcher.Deleted += UpdateDirectoryList;
-            Watcher.Renamed += UpdateDirectoryList;
+            Watcher.Created += (sender, args) => { AddToDirectoryList(args.FullPath); };
+            Watcher.Deleted += (sender, args) => { RemoveFromDirectoryList(args.FullPath); };
+            Watcher.Renamed += (sender, args) => { RenameInDirectoryList(args.OldFullPath, args.FullPath); };
 
             PopulateDirectoryList();
         }
 
-        public string DefaultFileName { get; set; } = "index.html";
+        public string IndexFileName
+        {
+            get { return _indexFileName; }
+            set
+            {
+                if (string.IsNullOrEmpty(value) || value == _indexFileName) return;
+                _indexFileName = value;
+                PopulateDirectoryList();
+            }
+        }
 
         public string Prefix
         {
@@ -110,7 +122,10 @@ namespace Grapevine.Server
             get { return _watcher; }
             protected internal set
             {
-                if (value != null) _watcher = value;
+                if (value == null || value == _watcher) return;
+                var tmpwatcher = _watcher;
+                _watcher = value;
+                tmpwatcher?.Dispose();
             }
         }
 
@@ -128,31 +143,9 @@ namespace Grapevine.Server
                 context.Response.SendResponse(DirectoryList[context.Request.PathInfo], true);
             }
 
-            if (Prefix != null && context.Request.PathInfo.StartsWith(Prefix) && !context.WasRespondedTo)
+            if (!string.IsNullOrEmpty(Prefix) && context.Request.PathInfo.StartsWith(Prefix) && !context.WasRespondedTo)
             {
                 throw new FileNotFoundException(context);
-            }
-        }
-
-        protected void UpdateDirectoryList(object source, FileSystemEventArgs args)
-        {
-            switch (args.ChangeType)
-            {
-                case WatcherChangeTypes.Created:
-                    AddToDirectoryList(args.FullPath);
-                    break;
-                case WatcherChangeTypes.Deleted:
-                    RemoveFromDirectoryList(args.FullPath);
-                    break;
-                case WatcherChangeTypes.Renamed:
-                    AddToDirectoryList(args.FullPath);
-                    RemoveFromDirectoryList((args as RenamedEventArgs)?.OldFullPath);
-                    break;
-            }
-
-            foreach (var key in DirectoryList.Keys)
-            {
-                Console.WriteLine(key);
             }
         }
 
@@ -165,21 +158,31 @@ namespace Grapevine.Server
             }
         }
 
-        protected void AddToDirectoryList(string item)
+        protected void AddToDirectoryList(string fullPath)
         {
-            if (item != null) DirectoryList[CreateDirectoryListKey(item)] = item;
+            DirectoryList[CreateDirectoryListKey(fullPath)] = fullPath;
+            if (fullPath.EndsWith($"\\{_indexFileName}"))
+                DirectoryList[CreateDirectoryListKey(fullPath.Replace($"\\{_indexFileName}", ""))] = fullPath;
         }
 
-        protected void RemoveFromDirectoryList(string item)
+        protected void RemoveFromDirectoryList(string fullPath)
         {
-            if (item == null) return;
-            var key = CreateDirectoryListKey(item);
-            if (DirectoryList.ContainsKey(key)) DirectoryList.TryRemove(key, out key);
+            DirectoryList.Where(x => x.Value == fullPath).ToList().ForEach(pair =>
+            {
+                string key;
+                DirectoryList.TryRemove(pair.Key, out key);
+            });
+        }
+
+        protected void RenameInDirectoryList(string oldFullPath, string newFullPath)
+        {
+            RemoveFromDirectoryList(oldFullPath);
+            AddToDirectoryList(newFullPath);
         }
 
         protected string CreateDirectoryListKey(string item)
         {
-            return $"{Prefix}{item.Replace(FolderPath, string.Empty)}";
+            return $"{Prefix}{item.Replace(FolderPath, string.Empty).Replace(@"\", "/")}";
         }
 
         public void Dispose()

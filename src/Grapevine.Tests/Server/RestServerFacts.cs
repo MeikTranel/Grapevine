@@ -54,11 +54,11 @@ namespace Grapevine.Tests.Server
                 using (var server = RestServer.For(_ =>
                 {
                     _.Port = port;
-                    _.PublicFolder = new PublicFolder { DefaultFileName = index};
+                    _.PublicFolder = new PublicFolder { IndexFileName = index};
                 }))
                 {
                     server.Port.ShouldBe(port);
-                    server.PublicFolder.DefaultFileName.ShouldBe(index);
+                    server.PublicFolder.IndexFileName.ShouldBe(index);
                 }
             }
 
