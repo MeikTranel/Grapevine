@@ -368,9 +368,7 @@ namespace Grapevine.Server
 
         public IRouter Import<T>() where T : IRouter, new()
         {
-            var type = typeof(T);
-            if (type.IsAbstract) throw new ArgumentException($"Cannot Import: {type.FullName} is an abstract class");
-            return Import((IRouter)Activator.CreateInstance(type));
+            return Import((IRouter)Activator.CreateInstance(typeof(T)));
         }
 
         public IRouter InsertAfter(int index, IRoute route)

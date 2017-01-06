@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Grapevine.Exceptions.Server;
 using Grapevine.Interfaces.Server;
+using Grapevine.Interfaces.Shared;
 using Grapevine.Server;
 using Grapevine.Server.Attributes;
 using Grapevine.Shared;
@@ -242,6 +243,13 @@ namespace Grapevine.Tests.Server
             {
                 var router = new Router();
                 Should.Throw<ArgumentException>(() => router.Import(typeof(AbstractRouter)));
+            }
+
+            [Fact]
+            public void ThrowsExceptionWhenTypeDoesNotHaveParameterlessConstructor()
+            {
+                var router = new Router();
+                Should.Throw<ArgumentException>(() => router.Import(typeof(NoParameterlessConstructor)));
             }
 
             [Fact]
@@ -901,6 +909,170 @@ namespace Grapevine.Tests.Server
     {
         /* This class intentionally left blank */
         /* This is not an IRouter */
+    }
+
+    public class NoParameterlessConstructor : IRouter
+    {
+        private readonly string _parameter;
+
+        public NoParameterlessConstructor(string parameter)
+        {
+            _parameter = parameter;
+        }
+
+        public Func<IHttpContext, IHttpContext> After { get; set; }
+        public Func<IHttpContext, IHttpContext> Before { get; set; }
+        public event RoutingEventHandler AfterRouting;
+        public event RoutingEventHandler BeforeRouting;
+        public bool ContinueRoutingAfterResponseSent { get; set; }
+        public IRouteScanner Scanner { get; }
+        public IList<IRoute> RoutingTable { get; }
+        public string Scope { get; }
+        public IRouter Import(IRouter router)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Import(Type type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Import<T>() where T : IRouter, new()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertAfter(int index, IRoute route)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertAfter(IRoute afterThisRoute, IRoute insertThisRoute)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertAfter(int index, IList<IRoute> routes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertAfter(IRoute afterThisRoute, IList<IRoute> insertTheseRoutes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertBefore(int index, IRoute route)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertBefore(IRoute beforeThisRoute, IRoute insertThisRoute)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertBefore(int index, IList<IRoute> routes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertBefore(IRoute beforeThisRoute, IList<IRoute> insertTheseRoutes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertFirst(IRoute route)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter InsertFirst(IList<IRoute> routes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IGrapevineLogger Logger { get; set; }
+        public IRouter Register(IRoute route)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(Func<IHttpContext, IHttpContext> func)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(Func<IHttpContext, IHttpContext> func, string pathInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(Func<IHttpContext, IHttpContext> func, HttpMethod httpMethod)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(Func<IHttpContext, IHttpContext> func, HttpMethod httpMethod, string pathInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(MethodInfo method)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(MethodInfo method, string pathInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(MethodInfo method, HttpMethod httpMethod)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(MethodInfo method, HttpMethod httpMethod, string pathInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(Type type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register<T>()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter Register(Assembly assembly)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IRouter ScanAssemblies()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Route(object state)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Route(IHttpContext context, IList<IRoute> routing)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IList<IRoute> RoutesFor(IHttpContext context)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public class MethodsToRegister

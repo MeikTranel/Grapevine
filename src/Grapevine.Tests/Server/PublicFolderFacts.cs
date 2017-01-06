@@ -19,19 +19,19 @@ namespace Grapevine.Tests.Server
             return Guid.NewGuid().Truncate() + "-" + Random.Next(10,99);
         }
 
-        private static void CleanUp(string folderpath)
-        {
-            try
-            {
-                foreach (var file in Directory.GetFiles(folderpath))
-                {
-                    File.Delete(file);
-                }
+        //private static void CleanUp(string folderpath)
+        //{
+        //    try
+        //    {
+        //        foreach (var file in Directory.GetFiles(folderpath))
+        //        {
+        //            File.Delete(file);
+        //        }
 
-                Directory.Delete(folderpath);
-            }
-            catch { /* ignored */ }
-        }
+        //        Directory.Delete(folderpath);
+        //    }
+        //    catch { /* ignored */ }
+        //}
 
         public class Constructors
         {
@@ -57,7 +57,7 @@ namespace Grapevine.Tests.Server
                 folder.Prefix.Equals(string.Empty).ShouldBeTrue();
                 folder.DirectoryListing.Any().ShouldBeFalse();
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -72,7 +72,7 @@ namespace Grapevine.Tests.Server
                 folder.Prefix.Equals(string.Empty).ShouldBeTrue();
                 folder.DirectoryListing.Any().ShouldBeFalse();
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -88,7 +88,7 @@ namespace Grapevine.Tests.Server
                 folder.Prefix.Equals($"/{prefix}").ShouldBeTrue();
                 folder.DirectoryListing.Any().ShouldBeFalse();
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
         }
 
@@ -108,7 +108,7 @@ namespace Grapevine.Tests.Server
                 folder.DirectoryListing.Count(x => x.Key.EndsWith(PublicFolder.DefaultIndexFileName)).ShouldBe(1);
                 folder.DirectoryListing.Count(x => x.Value == Path.Combine(folder.FolderPath, PublicFolder.DefaultIndexFileName)).ShouldBe(2);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -159,7 +159,7 @@ namespace Grapevine.Tests.Server
                 folder.DirectoryListing.Count(x => x.Key.EndsWith(defaultFileName2)).ShouldBe(1);
                 folder.DirectoryListing.Count(x => x.Value == Path.Combine(folder.FolderPath, defaultFileName2)).ShouldBe(2);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
         }
 
@@ -221,7 +221,7 @@ namespace Grapevine.Tests.Server
 
                 Directory.Exists(path).ShouldBeTrue();
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
         }
 
@@ -345,7 +345,7 @@ namespace Grapevine.Tests.Server
                 folder.DirectoryListing.Count.ShouldBe(1);
                 folder.DirectoryListing.Count(x => x.Key == $"/{filename}" && x.Value == filepath).ShouldBe(1);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -368,7 +368,7 @@ namespace Grapevine.Tests.Server
 
                 folder.DirectoryListing.Count.ShouldBe(0);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -394,7 +394,7 @@ namespace Grapevine.Tests.Server
                 folder.DirectoryListing.Count.ShouldBe(1);
                 folder.DirectoryListing.Count(x => x.Value == newfilepath).ShouldBe(1);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -418,7 +418,7 @@ namespace Grapevine.Tests.Server
                 folder.DirectoryListing.Count.ShouldBe(2);
                 folder.DirectoryListing.Count(x => x.Key == $"/{filename}" && x.Value == filepath).ShouldBe(1);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -444,7 +444,7 @@ namespace Grapevine.Tests.Server
 
                 folder.DirectoryListing.Count.ShouldBe(1);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -471,7 +471,7 @@ namespace Grapevine.Tests.Server
                 folder.DirectoryListing.Count(x => x.Value == newfilepath).ShouldBe(2);
                 folder.DirectoryListing.Count(x => x.Key == $"/{PublicFolder.DefaultIndexFileName}").ShouldBe(1);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -499,7 +499,7 @@ namespace Grapevine.Tests.Server
                 folder.DirectoryListing.Count(x => x.Value == newfilepath).ShouldBe(1);
                 folder.DirectoryListing.Count(x => x.Key == $"/{PublicFolder.DefaultIndexFileName}").ShouldBe(0);
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
         }
 
@@ -508,24 +508,27 @@ namespace Grapevine.Tests.Server
             [Fact]
             public void CallsSendResponseWhenFileExists()
             {
+                var responded = new ManualResetEvent(false);
                 var filename = GenerateUniqueString();
 
                 var folder = new PublicFolder(GenerateUniqueString());
-                var file = Path.Combine(folder.FolderPath, filename);
-                File.WriteAllText(file, "for testing purposes - delete me");
+                var filepath = Path.Combine(folder.FolderPath, filename);
+                File.WriteAllText(filepath, "for testing purposes - delete me");
 
                 var context = Mocks.HttpContext();
                 context.Request.PathInfo.Returns($"/{filename}");
                 context.Response.When(x => x.SendResponse(Arg.Any<string>(), true)).Do(info =>
                 {
                     context.WasRespondedTo.Returns(true);
+                    responded.Set();
                 });
 
                 folder.SendFile(context);
+                responded.WaitOne(300, false);
 
                 context.WasRespondedTo.ShouldBeTrue();
 
-                CleanUp(folder.FolderPath);
+                folder.CleanUp();
             }
 
             [Fact]
@@ -569,6 +572,20 @@ namespace Grapevine.Tests.Server
             var method = folder.GetType().GetMethod("CreateDirectoryListKey", BindingFlags.Instance | BindingFlags.NonPublic);
             var result = method.Invoke(folder, new object[] { item });
             return (string)result;
+        }
+
+        internal static void CleanUp(this IPublicFolder folder)
+        {
+            try
+            {
+                foreach (var file in Directory.GetFiles(folder.FolderPath))
+                {
+                    File.Delete(file);
+                }
+
+                Directory.Delete(folder.FolderPath);
+            }
+            catch { /* ignored */ }
         }
     }
 }

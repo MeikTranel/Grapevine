@@ -735,33 +735,6 @@ namespace Grapevine.Tests.Server
                 }
             }
         }
-
-        public class ThreadSafeStopMethod
-        {
-            [Fact]
-            public void StopsServer()
-            {
-                const int maxTicksToStop = 300;
-                var port = PortFinder.FindNextLocalOpenPort();
-                var ticksToStop = 0;
-
-                using (var server = new RestServer {Connections = 1, Port = port})
-                {
-
-                    server.Start();
-                    server.IsListening.ShouldBeTrue();
-                    server.ListenerPrefix.ShouldBe($"http://localhost:{port}/");
-                    server.ThreadSafeStop();
-                    while (server.IsListening && ticksToStop <= maxTicksToStop)
-                    {
-                        ticksToStop += 1;
-                        Thread.Sleep(10);
-                    }
-
-                    server.IsListening.ShouldBeFalse();
-                }
-            }
-        }
     }
 
     public static class RestServerExtensions
